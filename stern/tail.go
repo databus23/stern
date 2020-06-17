@@ -26,7 +26,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -34,6 +34,7 @@ type Tail struct {
 	Namespace      string
 	PodName        string
 	ContainerName  string
+	NodeName       string
 	Options        *TailOptions
 	req            *rest.Request
 	closed         chan struct{}
@@ -52,11 +53,12 @@ type TailOptions struct {
 }
 
 // NewTail returns a new tail for a Kubernetes container inside a pod
-func NewTail(namespace, podName, containerName string, tmpl *template.Template, options *TailOptions) *Tail {
+func NewTail(namespace, podName, containerName, nodeName string, tmpl *template.Template, options *TailOptions) *Tail {
 	return &Tail{
 		Namespace:     namespace,
 		PodName:       podName,
 		ContainerName: containerName,
+		NodeName:      nodeName,
 		Options:       options,
 		closed:        make(chan struct{}),
 		tmpl:          tmpl,
@@ -140,7 +142,7 @@ func (t *Tail) Start(ctx context.Context, i v1.PodInterface) {
 						break
 					}
 				}
- 				if !matches {
+				if !matches {
 					continue OUTER
 				}
 			}
@@ -174,6 +176,7 @@ func (t *Tail) Print(msg string) {
 		Namespace:      t.Namespace,
 		PodName:        t.PodName,
 		ContainerName:  t.ContainerName,
+		NodeName:       t.NodeName,
 		PodColor:       t.podColor,
 		ContainerColor: t.containerColor,
 	}
@@ -197,6 +200,9 @@ type Log struct {
 
 	// ContainerName of the container
 	ContainerName string `json:"containerName"`
+
+	// Name of the node the pod is running on
+	NodeName string `json:"nodeName"`
 
 	PodColor       *color.Color `json:"-"`
 	ContainerColor *color.Color `json:"-"`
